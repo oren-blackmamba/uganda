@@ -1,0 +1,2294 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>אוגנדה טראוול - לוח זמנים מלא</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .header {
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 15px;
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.3em;
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+        
+        .contact-info {
+            font-size: 1.1em;
+            color: #fff;
+            background: rgba(255,215,0,0.2);
+            padding: 10px 20px;
+            border-radius: 25px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            background: rgba(0,0,0,0.85);
+            padding: 15px;
+            gap: 12px;
+            flex-wrap: wrap;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        
+        .nav-tab {
+            padding: 15px 25px;
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .nav-tab:hover, .nav-tab.active {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #000;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255,215,0,0.4);
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+        
+        .section {
+            display: none;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        .section.active {
+            display: block;
+        }
+
+        /* Hospital and Seasons specific styles */
+        .hospital-grid, .seasons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .info-card {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 15px;
+            border-right: 5px solid #667eea;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .info-card h3 {
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+
+        .season-tag {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .season-dry { background: #fef3c7; color: #92400e; }
+        .season-wet { background: #e0f2fe; color: #0369a1; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .section-title {
+            font-size: 2.5em;
+            color: #2d3748;
+            margin-bottom: 25px;
+            text-align: center;
+            border-bottom: 4px solid #ffd700;
+            padding-bottom: 15px;
+            background: linear-gradient(45deg, #2d3748, #4a5568);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        
+        .schedule-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 18px 15px;
+            text-align: right;
+            font-weight: bold;
+            font-size: 16px;
+            border-bottom: 3px solid #ffd700;
+        }
+        
+        .schedule-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: middle;
+        }
+        
+        .schedule-table tr:hover {
+            background: #f8fafc;
+            transform: scale(1.01);
+            transition: all 0.2s ease;
+        }
+        
+        .station-cell {
+            min-width: 200px;
+            padding: 12px 15px !important;
+        }
+        
+        .station-name {
+            display: block;
+            font-weight: bold;
+            font-size: 15px;
+            margin-bottom: 5px;
+            color: #2d3748;
+        }
+        
+        .station-location {
+            display: block;
+            font-size: 13px;
+            color: #718096;
+            margin-bottom: 8px;
+        }
+        
+        .station-map {
+            display: inline-block;
+            padding: 6px 12px;
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .station-map:hover {
+            background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+            transform: scale(1.05);
+        }
+        
+        .company-name {
+            background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            display: inline-block;
+        }
+        
+        .departure-time {
+            font-weight: bold;
+            color: #2d3748;
+            font-size: 15px;
+        }
+        
+        .duration {
+            color: #4a5568;
+            font-weight: 500;
+        }
+        
+        .price {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #000;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            display: inline-block;
+        }
+        
+        .routes-section {
+            margin-bottom: 50px;
+        }
+        
+        .routes-section h2 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .disclaimer {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 50px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(254, 243, 199, 0.5);
+        }
+        
+        .disclaimer h3 {
+            color: #92400e;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        .disclaimer p {
+            color: #78350f;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        
+        .bus-companies {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .company-card {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border: 2px solid #3b82f6;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .company-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        }
+        
+        .company-card h3 {
+            color: #1e40af;
+            margin-bottom: 10px;
+            font-size: 20px;
+        }
+        
+        .company-card p {
+            margin-bottom: 8px;
+            color: #374151;
+            line-height: 1.4;
+        }
+        
+        .company-card strong {
+            color: #1e40af;
+        }
+        
+        .tourist-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .tourist-button {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+        
+        .tourist-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        }
+        
+        .tourist-details {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 15px;
+            border: 2px solid #10b981;
+            display: none;
+        }
+        
+        .tourist-details.active {
+            display: block;
+        }
+        
+        .tourist-bus-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .tourist-bus-table th {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 12px;
+            text-align: right;
+            font-weight: bold;
+            border: 1px solid #059669;
+        }
+        
+        .tourist-bus-table td {
+            padding: 10px 12px;
+            text-align: right;
+            border: 1px solid #e5e7eb;
+            background: #f9fafb;
+        }
+        
+        .tourist-bus-table tr:nth-child(even) td {
+            background: #f3f4f6;
+        }
+        
+        .tourist-bus-table tr:hover td {
+            background: #e0f2fe;
+            transition: background 0.3s ease;
+        }
+        
+        .section-divider {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #000;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+            margin: 30px 0;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(255,215,0,0.3);
+        }
+        
+        .terminal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            margin-top: 20px;
+            border-radius: 15px;
+        }
+        
+        .terminal-header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #ffd700;
+        }
+        
+        .terminal-header p {
+            font-size: 1.2em;
+            color: #fff;
+            margin-bottom: 0;
+        }
+        
+        .filter-section {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        #searchInput {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 25px;
+            font-size: 16px;
+            min-width: 300px;
+            transition: border-color 0.3s;
+        }
+        
+        #searchInput:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        #routeTypeFilter {
+            padding: 12px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 25px;
+            font-size: 16px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        
+        #routeTypeFilter:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .all-routes-table {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        
+        .route-type-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            text-align: center;
+        }
+        
+        .route-type-badge.domestic {
+            background: #3b82f6;
+        }
+        
+        .route-type-badge.international {
+            background: #ef4444;
+        }
+        
+        .route-type-badge.tourist {
+            background: #10b981;
+        }
+        
+        .disclaimer {
+            background: linear-gradient(135deg, #fffaf0 0%, #fef3c7 100%);
+            border: 2px solid #f59e0b;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .disclaimer h3 {
+            color: #d97706;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+        
+        .disclaimer p {
+            color: #92400e;
+            line-height: 1.6;
+            font-size: 1.1em;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .nav-tabs {
+                padding: 15px;
+                gap: 10px;
+            }
+            
+            .nav-tab {
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+            
+            .schedule-table {
+                font-size: 14px;
+            }
+            
+            .schedule-table th, .schedule-table td {
+                padding: 10px 8px;
+            }
+            
+            .station-cell {
+                min-width: 150px;
+            }
+            
+            .station-name {
+                font-size: 14px;
+            }
+            
+            .station-location {
+                font-size: 12px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px 10px;
+            }
+            
+            .section {
+                padding: 20px 15px;
+            }
+            
+            .schedule-table {
+                font-size: 12px;
+            }
+            
+            .schedule-table th, .schedule-table td {
+                padding: 8px 5px;
+            }
+            
+            .station-cell {
+                min-width: 120px;
+            }
+            
+            .station-name {
+                font-size: 13px;
+            }
+            
+            .station-location {
+                font-size: 11px;
+            }
+            
+            .company-name, .price {
+                font-size: 12px;
+                padding: 6px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌍 אוגנדה טראוול</h1>
+        <p>פורטל המידע המלא למטייל באוגנדה</p>
+        <div class="contact-info">📧 דוא"ל: oren6791@gmail.com | 🚍 לוח זמנים | 🏥 בתי חולים | 🌤️ עונות</div>
+    </div>
+
+    <div class="nav-tabs">
+        <button class="nav-tab active" onclick="showTab('bus')">🚌 לוח זמנים</button>
+        <button class="nav-tab" onclick="showTab('tourist')">🦁 אתרי תיירות</button>
+        <button class="nav-tab" onclick="showTab('hospitals')">🏥 בתי חולים</button>
+        <button class="nav-tab" onclick="showTab('seasons')">🌤️ עונות מומלצות</button>
+    </div>
+
+    <div id="bus-tab" class="tab-content active">
+        <!-- טרמינל נסיעות מרכזי -->
+        <div class="terminal-header">
+            <h1>🚌 טרמינל נסיעות אוגנדה המרכזי</h1>
+            <p>כל קווי האוטובוס באוגנדה - פנימיים, בינלאומיים ותיירות במקום אחד</p>
+        </div>
+
+        <!-- סינון וחיפוש -->
+        <div class="filter-section">
+            <input type="text" id="searchInput" placeholder="🔍 חפש עיר, חברה, או יעד...">
+            <select id="routeTypeFilter">
+                <option value="all">כל הקווים</option>
+                <option value="domestic">נסיעות פנימיות</option>
+                <option value="international">מעברי גבול</option>
+                <option value="tourist">אתרי תיירות</option>
+            </select>
+        </div>
+
+    <div class="container">
+        <!-- אזור חברות אוטובוס -->
+        <div class="routes-section">
+            <h2>🚌 חברות אוטובוס באוגנדה</h2>
+            <div class="bus-companies">
+                <div class="company-card">
+                    <h3>🚍 Express Coach</h3>
+                    <p><strong>שירות מהיר ואמין</strong></p>
+                    <p>📞 טלפון: +256 414 321 456</p>
+                    <p>📧 אימייל: info@expresscoach.ug</p>
+                    <p>🌐 אתר: www.expresscoach.ug</p>
+                    <p>📍 כתובת: Kampala Bus Park, De Winton Rd</p>
+                    <p>⭐ שירותים: נסיעות פנימיות, מיזוג, WiFi</p>
+                </div>
+                <div class="company-card">
+                    <h3>🚐 Gateway Bus</h3>
+                    <p><strong>החברה הגדולה ביותר</strong></p>
+                    <p>📞 טלפון: +256 414 234 567</p>
+                    <p>📧 אימייל: bookings@gatewaybus.ug</p>
+                    <p>🌐 אתר: www.gatewaybus.ug</p>
+                    <p>📍 כתובת: Kampala Bus Park, De Winton Rd</p>
+                    <p>⭐ שירותים: נסיעות בינלאומיות, מיזוג, WiFi</p>
+                </div>
+                <div class="company-card">
+                    <h3>🚗 Link Bus</h3>
+                    <p><strong>חיבור כל אוגנדה</strong></p>
+                    <p>📞 טלפון: +256 414 345 678</p>
+                    <p>📧 אימייל: info@linkbus.ug</p>
+                    <p>🌐 אתר: www.linkbus.ug</p>
+                    <p>📍 כתובת: Kampala Bus Park, De Winton Rd</p>
+                    <p>⭐ שירותים: נסיעות לכל הערים, מיזוג</p>
+                </div>
+                <div class="company-card">
+                    <h3>🚙 Swift Bus</h3>
+                    <p><strong>מהירות ונוחות</strong></p>
+                    <p>📞 טלפון: +256 414 456 789</p>
+                    <p>📧 אימייל: swift@swiftbus.ug</p>
+                    <p>🌐 אתר: www.swiftbus.ug</p>
+                    <p>📍 כתובת: Kampala Bus Park, De Winton Rd</p>
+                    <p>⭐ שירותים: נסיעות תכופות, מיזוג, WiFi</p>
+                </div>
+                <div class="company-card">
+                    <h3>🚌 Post Bus Uganda</h3>
+                    <p><strong>שירות ממשלתי</strong></p>
+                    <p>📞 טלפון: +256 414 567 890</p>
+                    <p>📧 אימייל: postbus@posta.ug</p>
+                    <p>🌐 אתר: www.postbus.ug</p>
+                    <p>📍 כתובת: Kampala Bus Park, De Winton Rd</p>
+                    <p>⭐ שירותים: נסיעות לאזורים מרוחקים, מחירים נמוכים</p>
+                </div>
+                <div class="company-card">
+                    <h3>🚐 Modern Coast</h3>
+                    <p><strong>שירות בינלאומי</strong></p>
+                    <p>📞 טלפון: +256 414 678 901</p>
+                    <p>📧 אימייל: info@moderncoast.ug</p>
+                    <p>🌐 אתר: www.moderncoast.ug</p>
+                    <p>📍 כתובת: Kampala Bus Park, De Winton Rd</p>
+                    <p>⭐ שירותים: נסיעות לקניה, מיזוג, WiFi</p>
+                </div>
+                <div class="company-card">
+                    <h3>🚗 Easy Coach</h3>
+                    <p><strong>נסיעות קלות</strong></p>
+                    <p>📞 טלפון: +256 414 789 012</p>
+                    <p>📧 אימייל: info@easycoach.ug</p>
+                    <p>🌐 אתר: www.easycoach.ug</p>
+                    <p>📍 כתובת: Kampala Bus Park, De Winton Rd</p>
+                    <p>⭐ שירותים: נסיעות לקניה וטנזניה, מיזוג</p>
+                </div>
+                <div class="company-card">
+                    <h3>🚌 Dar Express</h3>
+                    <p><strong>נסיעות לטנזניה</strong></p>
+                    <p>📞 טלפון: +256 414 890 123</p>
+                    <p>📧 אימייל: info@drexpress.ug</p>
+                    <p>🌐 אתר: www.drexpress.ug</p>
+                    <p>📍 כתובת: Kampala Bus Park, De Winton Rd</p>
+                    <p>⭐ שירותים: נסיעות לדאר א-סלאם, מיזוג</p>
+                </div>
+                <div class="company-card">
+                    <h3>🚐 Rwanda Express</h3>
+                    <p><strong>נסיעות לרואנדה</strong></p>
+                    <p>📞 טלפון: +256 414 901 234</p>
+                    <p>📧 אימייל: info@rwandaexpress.ug</p>
+                    <p>🌐 אתר: www.rwandaexpress.ug</p>
+                    <p>📍 כתובת: Kampala Bus Park, De Winton Rd</p>
+                    <p>⭐ שירותים: נסיעות לקיגאלי, מיזוג</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- טבלת נסיעות מקמפלה -->
+        <div class="routes-section">
+            <h2>🏛️ קמפלה (Kampala) - עיר הבירה</h2>
+            <table class="schedule-table">
+                <thead>
+                    <tr>
+                        <th>תחנת מוצא</th>
+                        <th>תחנת יעד</th>
+                        <th>חברה</th>
+                        <th>יציאה</th>
+                        <th>משך</th>
+                        <th>הערכת מחיר</th>
+                        <th>הערות</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- נסיעות לאנטבה -->
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏝️ Entebbe</span>
+                            <span class="station-location">Airport Rd, אנטבה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.0528,32.4637" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Express Coach</span></td>
+                        <td class="departure-time">05:00, 06:00, 07:00, 08:00, 09:00, 10:00, 11:00, 12:00, 13:00, 14:00, 15:00, 16:00, 17:00, 18:00, 19:00, 20:00</td>
+                        <td class="duration">1-1.5 שעות</td>
+                        <td><span class="price">10K</span></td>
+                        <td>כל חצי שעה</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏝️ Entebbe</span>
+                            <span class="station-location">Airport Rd, אנטבה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.0528,32.4637" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Gateway Bus</span></td>
+                        <td class="departure-time">06:00, 07:00, 08:00, 09:00, 10:00, 11:00, 12:00, 13:00, 14:00, 15:00, 16:00, 17:00, 18:00</td>
+                        <td class="duration">1-1.5 שעות</td>
+                        <td><span class="price">12K</span></td>
+                        <td>כל שעה</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏝️ Entebbe</span>
+                            <span class="station-location">Airport Rd, אנטבה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.0528,32.4637" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Swift Bus</span></td>
+                        <td class="departure-time">05:30, 06:30, 07:30, 08:30, 09:30, 10:30, 11:30, 12:30, 13:30, 14:30, 15:30, 16:30, 17:30, 18:30, 19:30</td>
+                        <td class="duration">1-1.5 שעות</td>
+                        <td><span class="price">11K</span></td>
+                        <td>כל שעה</td>
+                    </tr>
+                    
+                    <!-- נסיעות לג'ינג'ה -->
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🌊 Jinja</span>
+                            <span class="station-location">Main St, ג'ינג'ה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.4250,33.2020" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Gateway Bus</span></td>
+                        <td class="departure-time">06:00, 08:00, 10:00, 14:00, 16:00</td>
+                        <td class="duration">2-3 שעות</td>
+                        <td><span class="price">15K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🌊 Jinja</span>
+                            <span class="station-location">Main St, ג'ינג'ה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.4250,33.2020" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Link Bus</span></td>
+                        <td class="departure-time">07:00, 09:00, 11:00, 13:00, 15:00, 17:00</td>
+                        <td class="duration">2-3 שעות</td>
+                        <td><span class="price">18K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🌊 Jinja</span>
+                            <span class="station-location">Main St, ג'ינג'ה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.4250,33.2020" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Swift Bus</span></td>
+                        <td class="departure-time">06:30, 08:30, 10:30, 14:30, 16:30</td>
+                        <td class="duration">2-3 שעות</td>
+                        <td><span class="price">16K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <!-- נסיעות למבררה -->
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏔️ Mbarara</span>
+                            <span class="station-location">Mbarara-Masaka Rd</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-0.6070,30.6500" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Link Bus</span></td>
+                        <td class="departure-time">06:00, 08:00, 10:00, 14:00, 16:00</td>
+                        <td class="duration">4-5 שעות</td>
+                        <td><span class="price">25K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏔️ Mbarara</span>
+                            <span class="station-location">Mbarara-Masaka Rd</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-0.6070,30.6500" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Gateway Bus</span></td>
+                        <td class="departure-time">07:00, 09:00, 11:00, 13:00, 15:00, 17:00</td>
+                        <td class="duration">4-5 שעות</td>
+                        <td><span class="price">28K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏔️ Mbarara</span>
+                            <span class="station-location">Mbarara-Masaka Rd</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-0.6070,30.6500" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Swift Bus</span></td>
+                        <td class="departure-time">05:30, 07:30, 09:30, 11:30, 13:30, 15:30, 17:30</td>
+                        <td class="duration">4-5 שעות</td>
+                        <td><span class="price">30K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    
+                    <!-- נסיעות לפורט פורטל -->
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🦛 Fort Portal</span>
+                            <span class="station-location">Fort Portal Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.6710,30.2750" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Gateway Bus</span></td>
+                        <td class="departure-time">06:00, 08:00, 10:00, 14:00, 16:00</td>
+                        <td class="duration">5-6 שעות</td>
+                        <td><span class="price">30K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🌊 Jinja</span>
+                            <span class="station-location">Main St, ג'ינג'ה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.4250,33.2020" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Gateway Bus</span></td>
+                        <td class="departure-time">06:00, 08:00, 10:00, 14:00, 16:00</td>
+                        <td class="duration">2-3 שעות</td>
+                        <td><span class="price">15K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🌾 Gulu</span>
+                            <span class="station-location">Gulu Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=2.7747,32.2989" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Gateway Bus</span></td>
+                        <td class="departure-time">06:00, 08:00, 10:00, 14:00, 16:00</td>
+                        <td class="duration">5-6 שעות</td>
+                        <td><span class="price">35K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏝️ Entebbe</span>
+                            <span class="station-location">Airport Rd, אנטבה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.0528,32.4637" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Express Coach</span></td>
+                        <td class="departure-time">05:00, 06:00, 07:00, 08:00, 09:00, 10:00, 11:00, 12:00, 13:00, 14:00, 15:00, 16:00, 17:00, 18:00, 19:00, 20:00</td>
+                        <td class="duration">1-1.5 שעות</td>
+                        <td><span class="price">10K</span></td>
+                        <td>כל חצי שעה</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🌿 Mbale</span>
+                            <span class="station-location">Mbale Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=1.0771,34.1805" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Link Bus</span></td>
+                        <td class="departure-time">06:00, 08:00, 10:00, 14:00, 16:00</td>
+                        <td class="duration">4-5 שעות</td>
+                        <td><span class="price">30K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏔️ Arua</span>
+                            <span class="station-location">Arua Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=3.0200,31.1900" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Gateway Bus</span></td>
+                        <td class="departure-time">06:00, 08:00, 10:00</td>
+                        <td class="duration">6-7 שעות</td>
+                        <td><span class="price">40K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🌾 Lira</span>
+                            <span class="station-location">Lira Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=2.2500,32.9000" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Post Bus Uganda</span></td>
+                        <td class="departure-time">05:00, 07:00, 14:00</td>
+                        <td class="duration">7-8 שעות</td>
+                        <td><span class="price">40K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏜️ Moroto</span>
+                            <span class="station-location">Moroto Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=2.6500,34.6667" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Link Bus</span></td>
+                        <td class="departure-time">06:00, 08:00</td>
+                        <td class="duration">6-7 שעות</td>
+                        <td><span class="price">45K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">💧 Kapchorwa</span>
+                            <span class="station-location">Kapchorwa Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=1.2000,34.4167" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Link Bus</span></td>
+                        <td class="departure-time">06:00, 08:00</td>
+                        <td class="duration">6-7 שעות</td>
+                        <td><span class="price">45K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🌾 Soroti</span>
+                            <span class="station-location">Soroti Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=1.7148,33.6117" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Link Bus</span></td>
+                        <td class="departure-time">05:00, 07:00, 14:00</td>
+                        <td class="duration">5-6 שעות</td>
+                        <td><span class="price">40K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🪨 Tororo</span>
+                            <span class="station-location">Tororo Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.6928,34.1826" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Gateway Bus</span></td>
+                        <td class="departure-time">06:00, 08:00, 12:00</td>
+                        <td class="duration">4-5 שעות</td>
+                        <td><span class="price">35K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🌍 Busia</span>
+                            <span class="station-location">Busia Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.4667,34.1167" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Gateway Bus</span></td>
+                        <td class="departure-time">06:00, 08:00, 12:00</td>
+                        <td class="duration">4-5 שעות</td>
+                        <td><span class="price">35K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🦛 Hoima</span>
+                            <span class="station-location">Hoima Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=1.4333,31.3500" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Link Bus</span></td>
+                        <td class="departure-time">06:00, 08:00, 12:00</td>
+                        <td class="duration">4-5 שעות</td>
+                        <td><span class="price">30K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🐘 Masindi</span>
+                            <span class="station-location">Masindi Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=1.6747,31.7156" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Link Bus</span></td>
+                        <td class="departure-time">06:00, 08:00, 12:00</td>
+                        <td class="duration">5-6 שעות</td>
+                        <td><span class="price">35K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏔️ Kabale</span>
+                            <span class="station-location">Kabale-Mbarara Rd</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-1.2500,29.9900" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Link Bus</span></td>
+                        <td class="departure-time">06:00, 08:00, 10:00</td>
+                        <td class="duration">6-7 שעות</td>
+                        <td><span class="price">40K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🌿 Kasese</span>
+                            <span class="station-location">Kasese Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.1850,30.0500" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Gateway Bus</span></td>
+                        <td class="departure-time">06:00, 08:00, 10:00</td>
+                        <td class="duration">6-7 שעות</td>
+                        <td><span class="price">40K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏞️ Masaka</span>
+                            <span class="station-location">Masaka Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-0.3670,31.7330" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Link Bus</span></td>
+                        <td class="departure-time">07:00, 09:00, 11:00, 14:00</td>
+                        <td class="duration">3-4 שעות</td>
+                        <td><span class="price">25K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏜️ Kitgum</span>
+                            <span class="station-location">Kitgum Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=3.2833,32.8833" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Gateway Bus</span></td>
+                        <td class="departure-time">06:00, 08:00</td>
+                        <td class="duration">7-8 שעות</td>
+                        <td><span class="price">50K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🌾 Lira</span>
+                            <span class="station-location">Lira Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=2.2500,32.9000" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Link Bus</span></td>
+                        <td class="departure-time">06:00, 08:00, 10:00, 14:00</td>
+                        <td class="duration">4-5 שעות</td>
+                        <td><span class="price">35K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏔️ Bundibugyo</span>
+                            <span class="station-location">Bundibugyo Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.8667,30.0667" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Gateway Bus</span></td>
+                        <td class="departure-time">06:00</td>
+                        <td class="duration">8-9 שעות</td>
+                        <td><span class="price">55K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🌿 Ibanda</span>
+                            <span class="station-location">Ibanda Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-0.1333,30.9833" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Link Bus</span></td>
+                        <td class="departure-time">07:00, 09:00</td>
+                        <td class="duration">5-6 שעות</td>
+                        <td><span class="price">35K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏞️ Kyenjojo</span>
+                            <span class="station-location">Kyenjojo Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.6833,30.9667" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Gateway Bus</span></td>
+                        <td class="departure-time">07:00, 09:00, 11:00</td>
+                        <td class="duration">5-6 שעות</td>
+                        <td><span class="price">35K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- טבלת נסיעות מאנטבה -->
+        <div class="routes-section">
+            <h2>🏝️ אנטבה (Entebbe) - עיר השדה</h2>
+            <table class="schedule-table">
+                <thead>
+                    <tr>
+                        <th>תחנת מוצא</th>
+                        <th>תחנת יעד</th>
+                        <th>חברה</th>
+                        <th>יציאה</th>
+                        <th>משך</th>
+                        <th>הערכת מחיר</th>
+                        <th>הערות</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Entebbe Bus Park</span>
+                            <span class="station-location">Airport Rd, אנטבה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.0528,32.4637" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏛️ Kampala</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Express Coach</span></td>
+                        <td class="departure-time">05:00, 06:00, 07:00, 08:00, 09:00, 10:00, 11:00, 12:00, 13:00, 14:00, 15:00, 16:00, 17:00, 18:00, 19:00, 20:00</td>
+                        <td class="duration">1-1.5 שעות</td>
+                        <td><span class="price">10K</span></td>
+                        <td>כל חצי שעה</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Entebbe Bus Park</span>
+                            <span class="station-location">Airport Rd, אנטבה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.0528,32.4637" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏔️ Mbarara</span>
+                            <span class="station-location">Mbarara-Masaka Rd</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-0.6070,30.6500" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Gateway Bus</span></td>
+                        <td class="departure-time">06:00, 08:00, 10:00, 14:00, 16:00</td>
+                        <td class="duration">5-6 שעות</td>
+                        <td><span class="price">35K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Entebbe Bus Park</span>
+                            <span class="station-location">Airport Rd, אנטבה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.0528,32.4637" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🌊 Jinja</span>
+                            <span class="station-location">Main St, ג'ינג'ה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.4250,33.2020" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Link Bus</span></td>
+                        <td class="departure-time">07:00, 09:00, 11:00, 13:00, 15:00, 17:00</td>
+                        <td class="duration">3-4 שעות</td>
+                        <td><span class="price">25K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Entebbe Bus Park</span>
+                            <span class="station-location">Airport Rd, אנטבה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.0528,32.4637" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🦛 Fort Portal</span>
+                            <span class="station-location">Fort Portal Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.6710,30.2750" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Gateway Bus</span></td>
+                        <td class="departure-time">06:00, 08:00, 10:00</td>
+                        <td class="duration">6-7 שעות</td>
+                        <td><span class="price">40K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Entebbe Bus Park</span>
+                            <span class="station-location">Airport Rd, אנטבה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.0528,32.4637" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🌾 Gulu</span>
+                            <span class="station-location">Gulu Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=2.7747,32.2989" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Link Bus</span></td>
+                        <td class="departure-time">07:00, 09:00, 11:00</td>
+                        <td class="duration">6-7 שעות</td>
+                        <td><span class="price">45K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Entebbe Bus Park</span>
+                            <span class="station-location">Airport Rd, אנטבה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.0528,32.4637" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🌿 Mbale</span>
+                            <span class="station-location">Mbale Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=1.0771,34.1805" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Gateway Bus</span></td>
+                        <td class="departure-time">07:00, 09:00, 11:00</td>
+                        <td class="duration">5-6 שעות</td>
+                        <td><span class="price">40K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Entebbe Bus Park</span>
+                            <span class="station-location">Airport Rd, אנטבה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.0528,32.4637" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏔️ Kasese</span>
+                            <span class="station-location">Kasese Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.1850,30.0500" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Link Bus</span></td>
+                        <td class="departure-time">07:00, 09:00, 11:00</td>
+                        <td class="duration">7-8 שעות</td>
+                        <td><span class="price">45K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- טבלת נסיעות מג'ינג'ה -->
+        <div class="routes-section">
+            <h2>🌊 ג'ינג'ה (Jinja) - עיר הנילוס</h2>
+            <table class="schedule-table">
+                <thead>
+                    <tr>
+                        <th>תחנת מוצא</th>
+                        <th>תחנת יעד</th>
+                        <th>חברה</th>
+                        <th>יציאה</th>
+                        <th>משך</th>
+                        <th>הערכת מחיר</th>
+                        <th>הערות</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Jinja Bus Park</span>
+                            <span class="station-location">Main St, ג'ינג'ה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.4250,33.2020" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏛️ Kampala</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Gateway Bus</span></td>
+                        <td class="departure-time">06:00, 08:00, 10:00, 14:00, 16:00</td>
+                        <td class="duration">2-3 שעות</td>
+                        <td><span class="price">15K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Jinja Bus Park</span>
+                            <span class="station-location">Main St, ג'ינג'ה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.4250,33.2020" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏝️ Entebbe</span>
+                            <span class="station-location">Airport Rd, אנטבה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.0528,32.4637" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Link Bus</span></td>
+                        <td class="departure-time">07:00, 09:00, 11:00, 13:00, 15:00, 17:00</td>
+                        <td class="duration">3-4 שעות</td>
+                        <td><span class="price">25K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Jinja Bus Park</span>
+                            <span class="station-location">Main St, ג'ינג'ה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.4250,33.2020" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏔️ Mbarara</span>
+                            <span class="station-location">Mbarara-Masaka Rd</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-0.6070,30.6500" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Gateway Bus</span></td>
+                        <td class="departure-time">06:00, 08:00, 10:00</td>
+                        <td class="duration">5-6 שעות</td>
+                        <td><span class="price">30K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Jinja Bus Park</span>
+                            <span class="station-location">Main St, ג'ינג'ה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.4250,33.2020" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🌿 Mbale</span>
+                            <span class="station-location">Mbale Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=1.0771,34.1805" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Link Bus</span></td>
+                        <td class="departure-time">07:00, 09:00, 11:00, 13:00, 15:00, 17:00</td>
+                        <td class="duration">2-3 שעות</td>
+                        <td><span class="price">20K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Jinja Bus Park</span>
+                            <span class="station-location">Main St, ג'ינג'ה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.4250,33.2020" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🌍 Busia</span>
+                            <span class="station-location">Busia Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.4667,34.1167" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Gateway Bus</span></td>
+                        <td class="departure-time">08:00, 10:00, 12:00, 14:00, 16:00</td>
+                        <td class="duration">2-3 שעות</td>
+                        <td><span class="price">20K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Jinja Bus Park</span>
+                            <span class="station-location">Main St, ג'ינג'ה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.4250,33.2020" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🌾 Gulu</span>
+                            <span class="station-location">Gulu Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=2.7747,32.2989" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Link Bus</span></td>
+                        <td class="departure-time">06:00, 08:00, 10:00</td>
+                        <td class="duration">4-5 שעות</td>
+                        <td><span class="price">35K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- טבלת נסיעות ממבררה -->
+        <div class="routes-section">
+            <h2>🏔️ מבררה (Mbarara) - עיר ההרים</h2>
+            <table class="schedule-table">
+                <thead>
+                    <tr>
+                        <th>תחנת מוצא</th>
+                        <th>תחנת יעד</th>
+                        <th>חברה</th>
+                        <th>יציאה</th>
+                        <th>משך</th>
+                        <th>הערכת מחיר</th>
+                        <th>הערות</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Mbarara Bus Park</span>
+                            <span class="station-location">Mbarara-Masaka Rd</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-0.6070,30.6500" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏛️ Kampala</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Link Bus</span></td>
+                        <td class="departure-time">06:00, 08:00, 10:00, 14:00, 16:00</td>
+                        <td class="duration">4-5 שעות</td>
+                        <td><span class="price">25K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Mbarara Bus Park</span>
+                            <span class="station-location">Mbarara-Masaka Rd</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-0.6070,30.6500" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏝️ Entebbe</span>
+                            <span class="station-location">Airport Rd, אנטבה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.0528,32.4637" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Gateway Bus</span></td>
+                        <td class="departure-time">07:00, 09:00, 11:00, 13:00, 15:00, 17:00</td>
+                        <td class="duration">5-6 שעות</td>
+                        <td><span class="price">35K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Mbarara Bus Park</span>
+                            <span class="station-location">Mbarara-Masaka Rd</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-0.6070,30.6500" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🦛 Fort Portal</span>
+                            <span class="station-location">Fort Portal Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.6710,30.2750" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Link Bus</span></td>
+                        <td class="departure-time">08:00, 10:00, 14:00</td>
+                        <td class="duration">3-4 שעות</td>
+                        <td><span class="price">20K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Mbarara Bus Park</span>
+                            <span class="station-location">Mbarara-Masaka Rd</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-0.6070,30.6500" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🌿 Kasese</span>
+                            <span class="station-location">Kasese Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.1850,30.0500" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Gateway Bus</span></td>
+                        <td class="departure-time">08:00, 10:00, 14:00</td>
+                        <td class="duration">2-3 שעות</td>
+                        <td><span class="price">15K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Mbarara Bus Park</span>
+                            <span class="station-location">Mbarara-Masaka Rd</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-0.6070,30.6500" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏔️ Kabale</span>
+                            <span class="station-location">Kabale-Mbarara Rd</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-1.2500,29.9900" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Link Bus</span></td>
+                        <td class="departure-time">08:00, 10:00, 14:00</td>
+                        <td class="duration">2-3 שעות</td>
+                        <td><span class="price">15K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- טבלת נסיעות מגולו -->
+        <div class="routes-section">
+            <h2>🌾 גולו (Gulu) - עיר הצפון</h2>
+            <table class="schedule-table">
+                <thead>
+                    <tr>
+                        <th>תחנת מוצא</th>
+                        <th>תחנת יעד</th>
+                        <th>חברה</th>
+                        <th>יציאה</th>
+                        <th>משך</th>
+                        <th>הערכת מחיר</th>
+                        <th>הערות</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Gulu Bus Park</span>
+                            <span class="station-location">Gulu Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=2.7747,32.2989" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏛️ Kampala</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Gateway Bus</span></td>
+                        <td class="departure-time">06:00, 08:00, 10:00, 14:00, 16:00</td>
+                        <td class="duration">5-6 שעות</td>
+                        <td><span class="price">35K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Gulu Bus Park</span>
+                            <span class="station-location">Gulu Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=2.7747,32.2989" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🌾 Lira</span>
+                            <span class="station-location">Lira Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=2.2500,32.9000" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Post Bus Uganda</span></td>
+                        <td class="departure-time">07:00, 09:00, 11:00, 13:00, 15:00</td>
+                        <td class="duration">2-3 שעות</td>
+                        <td><span class="price">15K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Gulu Bus Park</span>
+                            <span class="station-location">Gulu Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=2.7747,32.2989" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🏜️ Moroto</span>
+                            <span class="station-location">Moroto Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=2.6500,34.6667" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Link Bus</span></td>
+                        <td class="departure-time">06:00, 08:00</td>
+                        <td class="duration">4-5 שעות</td>
+                        <td><span class="price">30K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="domestic-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Gulu Bus Park</span>
+                            <span class="station-location">Gulu Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=2.7747,32.2989" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🌾 Soroti</span>
+                            <span class="station-location">Soroti Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=1.7148,33.6117" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Link Bus</span></td>
+                        <td class="departure-time">07:00, 09:00, 11:00</td>
+                        <td class="duration">3-4 שעות</td>
+                        <td><span class="price">20K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- טבלת נסיעות לגבול -->
+        <div class="routes-section">
+            <h2>🌍 מעברי גבול בינלאומיים</h2>
+            <table class="schedule-table">
+                <thead>
+                    <tr>
+                        <th>תחנת מוצא</th>
+                        <th>תחנת יעד</th>
+                        <th>חברה</th>
+                        <th>יציאה</th>
+                        <th>משך</th>
+                        <th>הערכת מחיר</th>
+                        <th>הערות</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="international-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🇰🇪 ניירובי, קניה</span>
+                            <span class="station-location">Nairobi, Kenya</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-1.2921,36.8219" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Modern Coast</span></td>
+                        <td class="departure-time">08:00, 10:00, 14:00</td>
+                        <td class="duration">10-12 שעות</td>
+                        <td><span class="price">100K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="international-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🇰🇪 קיסומו, קניה</span>
+                            <span class="station-location">Kisumu, Kenya</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.0167,34.7667" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Easy Coach</span></td>
+                        <td class="departure-time">07:00, 09:00</td>
+                        <td class="duration">8-10 שעות</td>
+                        <td><span class="price">70K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="international-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🇰🇪 אלדורט, קניה</span>
+                            <span class="station-location">Eldoret, Kenya</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.5167,35.2833" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Modern Coast</span></td>
+                        <td class="departure-time">08:00, 10:00</td>
+                        <td class="duration">9-11 שעות</td>
+                        <td><span class="price">80K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="international-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🇹🇿 דאר א-סלאם, טנזניה</span>
+                            <span class="station-location">Dar es Salaam, Tanzania</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-6.7924,39.2083" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Dar Express</span></td>
+                        <td class="departure-time">06:00, 08:00</td>
+                        <td class="duration">24-30 שעות</td>
+                        <td><span class="price">150K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="international-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🇷🇼 קיגאלי, רואנדה</span>
+                            <span class="station-location">Kigali, Rwanda</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-1.9536,30.0606" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Rwanda Express</span></td>
+                        <td class="departure-time">08:00, 10:00, 14:00</td>
+                        <td class="duration">8-10 שעות</td>
+                        <td><span class="price">60K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="international-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🇷🇼 קאטונה, גבול רואנדה</span>
+                            <span class="station-location">Katuna Border</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-1.0500,29.8500" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Border Bus</span></td>
+                        <td class="departure-time">06:00, 08:00, 10:00</td>
+                        <td class="duration">5-6 שעות</td>
+                        <td><span class="price">45K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="international-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🇨🇩 גומה, קונגו</span>
+                            <span class="station-location">Goma, DRC</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-1.6844,29.2286" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Congo Bus</span></td>
+                        <td class="departure-time">07:00, 09:00</td>
+                        <td class="duration">8-10 שעות</td>
+                        <td><span class="price">80K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="international-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🇸🇸 ג'ובה, דרום סודאן</span>
+                            <span class="station-location">Juba, South Sudan</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=4.8594,31.5711" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">South Sudan Bus</span></td>
+                        <td class="departure-time">07:00</td>
+                        <td class="duration">6-8 שעות</td>
+                        <td><span class="price">70K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="international-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🇰🇪 בוסיה (גבול קניה)</span>
+                            <span class="station-location">Busia Border</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.4667,34.1167" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Border Bus</span></td>
+                        <td class="departure-time">07:00, 10:00, 14:00</td>
+                        <td class="duration">4-5 שעות</td>
+                        <td><span class="price">35K</span></td>
+                        <td>קרוב לגבול</td>
+                    </tr>
+                    <tr class="international-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🇰🇪 מאלאבה (גבול קניה)</span>
+                            <span class="station-location">Malaba Border</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.5167,34.0500" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Border Bus</span></td>
+                        <td class="departure-time">07:00, 10:00, 14:00</td>
+                        <td class="duration">4-5 שעות</td>
+                        <td><span class="price">35K</span></td>
+                        <td>קרוב לגבול</td>
+                    </tr>
+                    <tr class="international-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🇹🇿 מושי (גבול טנזניה)</span>
+                            <span class="station-location">Moshi, Tanzania</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-3.3400,37.3400" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Kilimanjaro Express</span></td>
+                        <td class="departure-time">06:00, 08:00</td>
+                        <td class="duration">12-14 שעות</td>
+                        <td><span class="price">120K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="international-route">
+                        <td class="station-cell">
+                            <span class="station-name">🏝️ Entebbe Bus Park</span>
+                            <span class="station-location">Airport Rd, אנטבה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.0528,32.4637" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🇰🇪 קיסומו, קניה</span>
+                            <span class="station-location">Kisumu, Kenya</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-0.0917,34.7680" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Modern Coast</span></td>
+                        <td class="departure-time">07:00, 09:00, 11:00</td>
+                        <td class="duration">7-8 שעות</td>
+                        <td><span class="price">75K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="international-route">
+                        <td class="station-cell">
+                            <span class="station-name">🌊 Jinja Bus Park</span>
+                            <span class="station-location">Main St, ג'ינג'ה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.4250,33.2020" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🇰🇪 בוסיה (גבול קניה)</span>
+                            <span class="station-location">Busia Border</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.4667,34.1167" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Border Bus</span></td>
+                        <td class="departure-time">08:00, 11:00, 14:00</td>
+                        <td class="duration">2-3 שעות</td>
+                        <td><span class="price">25K</span></td>
+                        <td>קרוב לגבול</td>
+                    </tr>
+                    <tr class="international-route">
+                        <td class="station-cell">
+                            <span class="station-name">🏔️ Mbarara Bus Park</span>
+                            <span class="station-location">Mbarara-Masaka Rd</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-0.6070,30.6500" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🇷🇼 קיגאלי, רואנדה</span>
+                            <span class="station-location">Kigali, Rwanda</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-1.9536,30.0606" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Rwanda Express</span></td>
+                        <td class="departure-time">06:00, 08:00, 10:00</td>
+                        <td class="duration">6-8 שעות</td>
+                        <td><span class="price">60K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="international-route">
+                        <td class="station-cell">
+                            <span class="station-name">🦛 Fort Portal Bus Park</span>
+                            <span class="station-location">Fort Portal Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.6710,30.2750" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🇨🇩 גומה, קונגו</span>
+                            <span class="station-location">Goma, DRC</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-1.6792,29.2582" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Congo Express</span></td>
+                        <td class="departure-time">07:00</td>
+                        <td class="duration">8-10 שעות</td>
+                        <td><span class="price">80K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="international-route">
+                        <td class="station-cell">
+                            <span class="station-name">🌾 Gulu Bus Park</span>
+                            <span class="station-location">Gulu Town</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=2.7747,32.2989" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🇸🇸 ג'ובה, דרום סודאן</span>
+                            <span class="station-location">Juba, South Sudan</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=4.8594,31.5711" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">South Sudan Bus</span></td>
+                        <td class="departure-time">06:00, 08:00</td>
+                        <td class="duration">8-10 שעות</td>
+                        <td><span class="price">90K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="international-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🇹🇿 דאר א-סלאם, טנזניה</span>
+                            <span class="station-location">Dar es Salaam, Tanzania</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-6.7924,39.2083" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Dar Express</span></td>
+                        <td class="departure-time">06:00, 08:00</td>
+                        <td class="duration">24-26 שעות</td>
+                        <td><span class="price">180K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="international-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🇰🇪 ניירובי, קניה</span>
+                            <span class="station-location">Nairobi, Kenya</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-1.2921,36.8219" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Easy Coach</span></td>
+                        <td class="departure-time">06:00, 08:00, 10:00</td>
+                        <td class="duration">12-14 שעות</td>
+                        <td><span class="price">120K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                    <tr class="international-route">
+                        <td class="station-cell">
+                            <span class="station-name">📍 Kampala Bus Park</span>
+                            <span class="station-location">De Winton Rd, קמפלה</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=0.3150,32.5820" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td class="station-cell">
+                            <span class="station-name">🇰🇪 ניירובי, קניה</span>
+                            <span class="station-location">Nairobi Central</span>
+                            <a href="https://www.google.com/maps/search/?api=1&query=-1.2833,36.8167" target="_blank" class="station-map">🗺️ מפה</a>
+                        </td>
+                        <td><span class="company-name">Gateway Bus</span></td>
+                        <td class="departure-time">06:00, 20:00</td>
+                        <td class="duration">12-14 שעות</td>
+                        <td><span class="price">100K</span></td>
+                        <td>יומי</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="disclaimer">
+            <h3>📋 הערות חשובות</h3>
+            <p>• כל המחירים הם הערכות בלבד ועלולים להשתנות</p>
+            <p>• מומלץ להגיע לתחנה 30 דקות לפני זמן היציאה</p>
+            <p>• יש להצטייד בדרכון ובויזה לנסיעות בינלאומיות</p>
+            <p>• שעות היציאה עלולים להשתנות בהתאם לתנאי הדרך</p>
+        </div>
+    </div> <!-- End of bus-tab -->
+
+    <div id="tourist-tab" class="tab-content">
+        <div class="container">
+            <div class="routes-section">
+                <h2>🦁 אתרי תיירות ופארקים לאומיים</h2>
+                <p style="text-align: center; margin-bottom: 20px;">לחצו על האתר כדי לראות פרטים ודרכי הגעה מומלצות</p>
+                <div class="tourist-buttons">
+                    <button class="tourist-button" onclick="toggleDetails('murchison')">🐘 Murchison Falls</button>
+                    <div id="murchison" class="tourist-details">
+                        <h3>🐘 Murchison Falls National Park</h3>
+                        <p><strong>פעילות:</strong> ספארי, שיט בנילוס למפלים, צפייה בחיות בר (אריות, פילים, ג'ירפות).</p>
+                        <p><strong>הגעה:</strong> אוטובוס מקמפלה (Link Bus) ל-Masindi ומשם מונית.</p>
+                        <p><strong>עלות כניסה:</strong> $40 לזרים.</p>
+                    </div>
+
+                    <button class="tourist-button" onclick="toggleDetails('queen')">🦛 Queen Elizabeth Park</button>
+                    <div id="queen" class="tourist-details">
+                        <h3>🦛 Queen Elizabeth National Park</h3>
+                        <p><strong>פעילות:</strong> שיט בתעלת קזינגה, אריות מטפסי עצים ב-Ishasha.</p>
+                        <p><strong>הגעה:</strong> אוטובוס לכיוון Kasese או Mbarara.</p>
+                        <p><strong>עלות כניסה:</strong> $40 לזרים.</p>
+                    </div>
+
+                    <button class="tourist-button" onclick="toggleDetails('bwindi')">🦍 Bwindi Forest (גורילות)</button>
+                    <div id="bwindi" class="tourist-details">
+                        <h3>🦍 Bwindi Impenetrable Forest</h3>
+                        <p><strong>פעילות:</strong> טרק גורילות הרים (חובה להזמין אישור מראש).</p>
+                        <p><strong>הגעה:</strong> אוטובוס מקמפלה ל-Kabale או Kisoro.</p>
+                    </div>
+
+                    <button class="tourist-button" onclick="toggleDetails('jinja')">🌊 Source of Nile (ג'ינג'ה)</button>
+                    <div id="jinja" class="tourist-details">
+                        <h3>🌊 Source of the Nile - Jinja</h3>
+                        <p><strong>פעילות:</strong> רפטינג, שיט למקור הנילוס, אקסטרים.</p>
+                        <p><strong>הגעה:</strong> אוטובוס סדיר מקמפלה (כל 30 דקות).</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="hospitals-tab" class="tab-content">
+        <div class="container">
+            <div class="routes-section">
+                <h2>🏥 בתי חולים ומרכזים רפואיים מומלצים</h2>
+                <div class="hospital-grid">
+                    <div class="info-card">
+                        <h3>🏥 International Hospital Kampala (IHK)</h3>
+                        <p>בית חולים פרטי ברמה בינלאומית, פתוח 24/7 לחירום.</p>
+                        <p>📍 <strong>מיקום:</strong> Namuwongo, Kampala</p>
+                        <p>📞 <strong>טלפון:</strong> +256 414 348 291</p>
+                        <a href="https://www.google.com/maps/search/?api=1&query=0.3050,32.6080" target="_blank" class="station-map">🗺️ נווט במפה</a>
+                    </div>
+                    <div class="info-card">
+                        <h3>🏥 Nakasero Hospital</h3>
+                        <p>אחד מבתי החולים הפרטיים הטובים והחדישים ביותר בקמפלה.</p>
+                        <p>📍 <strong>מיקום:</strong> Nakasero, Kampala</p>
+                        <p>📞 <strong>טלפון:</strong> +256 414 346 150</p>
+                        <a href="https://www.google.com/maps/search/?api=1&query=0.3240,32.5780" target="_blank" class="station-map">🗺️ נווט במפה</a>
+                    </div>
+                    <div class="info-card">
+                        <h3>🏥 C-Care Entebbe</h3>
+                        <p>מענה רפואי מצוין באזור אנטבה, קרוב לשדה התעופה.</p>
+                        <p>📍 <strong>מיקום:</strong> Entebbe Highway</p>
+                        <p>📞 <strong>טלפון:</strong> +256 312 200 400</p>
+                        <a href="https://www.google.com/maps/search/?api=1&query=0.0630,32.4720" target="_blank" class="station-map">🗺️ נווט במפה</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="seasons-tab" class="tab-content">
+        <div class="container">
+            <div class="routes-section">
+                <h2>🌤️ עונות מומלצות ומזג אוויר</h2>
+                <div class="seasons-grid">
+                    <div class="info-card">
+                        <span class="season-tag">☀️ יוני - ספטמבר (שיא העונה)</span>
+                        <p>העונה היבשה הארוכה. הזמן הטוב ביותר לצפייה בחיות בר ובטרק גורילות. הדרכים בפארקים נוחות למעבר.</p>
+                    </div>
+                    <div class="info-card">
+                        <span class="season-tag">☀️ דצמבר - פברואר</span>
+                        <p>עונה יבשה קצרה. מזג אוויר מצוין לספארי וצפייה בציפורים.</p>
+                    </div>
+                    <div class="info-card">
+                        <span class="season-tag" style="background: #e0f2fe; color: #0369a1;">🌧️ מרץ - מאי / אוקטובר - נובמבר</span>
+                        <p>העונות הגשומות. הנוף ירוק ופורח, אך חלק מהדרכים בפארקים עלולות להיות מאתגרות ובוציות.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .tab-content { display: none; margin-top: 30px; animation: fadeIn 0.4s ease; }
+        .tab-content.active { display: block; }
+                    <p><strong>טיפים:</strong> מושלם לטיול יום, קרוב לקמפלה, מומלץ להביא נעליים נוחות</p>
+                </div>
+            </div>
+    </div> <!-- End of bus-tab -->
+
+    <div id="tourist-tab" class="tab-content">
+        <div class="container">
+            <!-- אתרי תיירות -->
+            <div class="routes-section">
+                <h2>🦁 אתרי תיירות ופארקים לאומיים</h2>
+                <p style="text-align: center; margin-bottom: 20px;">לחצו על האתר כדי לראות פרטים נוספים ואוטובוסים מומלצים</p>
+                <div class="tourist-buttons">
+                    <!-- Tourist buttons content remains the same but wrapped in this tab -->
+    
+    <style>
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+
+    <script>
+        // פונקציה להחלפת לשוניות
+        function showTab(tabName) {
+            // עדכון כפתורי הניווט
+            const tabs = document.querySelectorAll('.nav-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            // עדכון התוכן המוצג
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // גלילה לראש הדף
+            window.scrollTo(0, 0);
+        }
+
+        // סינון וחיפוש נתיבים
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchInput');
+            const routeTypeFilter = document.getElementById('routeTypeFilter');
+            const allRows = document.querySelectorAll('tbody tr');
+
+            // פונקציית סינון
+            function filterRoutes() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const routeType = routeTypeFilter.value;
+
+                for (let row of allRows) {
+                    const text = row.textContent.toLowerCase();
+                    const isDomestic = row.classList.contains('domestic-route');
+                    const isInternational = row.classList.contains('international-route');
+                    const isTourist = row.classList.contains('tourist-route');
+
+                    let showByType = true;
+                    if (routeType === 'domestic') showByType = isDomestic;
+                    else if (routeType === 'international') showByType = isInternational;
+                    else if (routeType === 'tourist') showByType = isTourist;
+
+                    const showBySearch = text.includes(searchTerm);
+
+                    row.style.display = showByType && showBySearch ? '' : 'none';
+                }
+
+                // הסתרת מחלקות ריקות (רק אם אנחנו בלשונית האוטובוסים)
+                const busTab = document.getElementById('bus-tab');
+                if (busTab.classList.contains('active')) {
+                    const sections = busTab.querySelectorAll('.routes-section');
+                    sections.forEach(section => {
+                        const visibleRows = section.querySelectorAll('tr:not([style*="display: none"])');
+                        if (visibleRows.length === 0 && !section.querySelector('h2').textContent.includes('חברות אוטובוס')) {
+                            section.style.display = 'none';
+                        } else {
+                            section.style.display = 'block';
+                        }
+                    });
+                }
+            }
+
+            // אירועי חיפוש
+            searchInput.addEventListener('input', filterRoutes);
+            routeTypeFilter.addEventListener('change', filterRoutes);
+        });
+
+        // פונקציה להצגת/הסתרת פרטי אתרי תיירות
+        function toggleDetails(id) {
+            const details = document.getElementById(id);
+            if (!details) return;
+            
+            const allDetails = document.querySelectorAll('.tourist-details');
+            
+            // סגור את כל הפרטים האחרים
+            allDetails.forEach(detail => {
+                if (detail.id !== id) {
+                    detail.classList.remove('active');
+                }
+            });
+            
+            // הצג/הסתר את הפרטים הנוכחיים
+            details.classList.toggle('active');
+            
+            if (details.classList.contains('active')) {
+                details.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    </script>
+</body>
+</html>
